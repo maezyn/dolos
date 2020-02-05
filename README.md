@@ -26,6 +26,10 @@ TODO
 
 * dirent.h - Used for retrieving file and directory information
 
+## Outlook
+
+The goal is to transform this project into metamorphic malware in order to better comprehend this challenging topic.
+
 ## License
 
 wildfire is available under the [MIT License](https://github.com/mmore21/wildfire/blob/master/LICENSE).
