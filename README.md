@@ -8,6 +8,8 @@ This virus looks for other C source files and injects a copy of its code into th
 
 ## Usage
 
+Temporarily, run the program by compiling from source with gcc. Scripts listed below will be implemented later.
+
 ### Windows:
 
 Run with the following batch script:
