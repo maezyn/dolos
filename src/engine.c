@@ -15,6 +15,8 @@
 #define SBB 0x19
 #define SUB 0x29
 
+const unsigned char prefixes[] = { ADD, AND, XOR, OR, SBB, SUB, 0 };
+
 #define JUNK asm __volatile__(".byte 0x50, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x58\n");
 #define JUNKLEN 8
 
@@ -76,6 +78,66 @@ int writeinstruction(unsigned reg, int offset, int space)
         *(short*)(code+offset+1) = rand();
         *(short*)(code+offset+3) = rand();      JUNK;
         return 5;
+    }
+}
+
+int readinstruction(unsigned reg, int offset)
+{
+    unsigned c1 = code[offset];
+    if (c1 == NOP)
+    {
+        return 1;                       JUNK;
+    }
+    if (c1 == MOV+reg)
+    {
+        return 5;                       JUNK;
+    }
+    if (strchr(prefixes, c1))
+    {
+        unsigned c2 = code[offset+1];   JUNK;
+        if (c2 >= 0xC0 && c2 <= 0xFF && (c2&7) == reg)
+        {
+            return 2;                   JUNK;
+        }                               JUNK;
+        return 0;
+    }
+}
+
+void replacejunk(void)
+{
+    int i, j, inc, space;
+    srand(time(NULL));                                  JUNK;
+
+    for (i=0; i < codelen-JUNKLEN-2; i++)
+    {
+        unsigned start = code[i];
+        unsigned end = code[i+JUNKLEN+1];
+        unsigned reg = start-PUSH;
+
+        if (start < PUSH || start >= PUSH+8) continue;  JUNK;
+        if (end != POP+reg) continue;                   JUNK;
+
+        /* Register 4 is ESP (stack) */
+        if (reg == 4) continue;
+
+        j = 0;                                          JUNK;
+        while (inc = readinstruction(reg, i+1+j)) j += inc;
+        if (j != JUNKLEN) continue;                     JUNK;
+
+        reg = rand()%7;                                 JUNK;
+        reg += (reg >= 4);
+        code[i] = PUSH + reg;                           JUNK;
+        code[i+JUNKLEN+1] = POP + reg;                  JUNK;
+
+        space = JUNKLEN;
+        j = 0;                                          JUNK;
+        while (space)
+        {
+            inc = writeinstruction(reg, i+1+j, space);  JUNK;
+            j += inc;
+            space -= inc;                               JUNK;
+        }
+        printf("%d\n", i);                              JUNK;
     }
 }
 
