@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <time.h>
 
 #define PUSH 0x50
 #define POP 0x58
@@ -26,7 +27,7 @@ int codelen;
 void readcode(const char *filename)
 {
     /* Opens file, rb represents read and binary */
-    FILE *fp = fopen(filename, 'rb');   JUNK;
+    FILE *fp = fopen(filename, "rb");   JUNK;
     /* Sets the file position of the stream to the given offset (0 long int) */
     fseek(fp, 0L, SEEK_END);            JUNK;
     /* Sets the length of the code  */
@@ -69,7 +70,7 @@ int writeinstruction(unsigned reg, int offset, int space)
     else if (space < 5 || rand()%2 == 0)
     {
         code[offset] = prefixes[rand()%6];      JUNK;
-        code[offset+1] = 0xC0 + rand()%8 + reg; JUNK;
+        code[offset+1] = 0xC0 + rand()%8*8 + reg; JUNK;
         return 2;
     }
     else
@@ -145,7 +146,7 @@ int main(int argc, char* argv[])
 {
     readcode(argv[0]);  JUNK;
     replacejunk();      JUNK;
-    writecode(argv[0])  JUNK;
+    writecode(argv[0]); JUNK;
 
     return 0;
 }
