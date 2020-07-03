@@ -4,21 +4,25 @@
 
 A metamorphic virus written in C.
 
-This virus attaches itself to executable files and replicates itself.
+## Description
 
-## Design
-
-The virus is first activated by running the compiled bytecode. It then searches and embeds itself into all executable files in the same directory.
+The malware is first activated by running the compiled bytecode. It copies the */etc/passwd* and */etc/shadow* files from the user's system and sends them to an external IP address. This is achieved by embedding these sensitive file contents in the payloads of ICMP pings. Next, the malware scans the current directory and overwrites all executable files that have not been previously infected with its morphed code. Because each propagation uses a unique version of the morphed code, it makes it difficult for antivirus software to detect it. Afterwards, the original executable is run from a hidden file it was copied to during the propagation phase to disguise the fact that the actual executable was infected.
 
 ## Usage
 
-Temporarily, run the program by compiling from source with gcc. Scripts listed below will be implemented later.
+**Caution, running the executable will propagate the virus into all other files in the current directory that have executable permissions. This can cause permanent damage to your system if misused.**
+
+Run the program using the following Makefile or by compiling from source with gcc.
 
 ### Unix:
 
 Run with the following Makefile:
 <pre>
-TODO
+git clone https://github.com/mmore21/wildfire.git
+cd wildfire/
+make
+./wildfire
+make clean
 </pre>
 
 ## Libraries
@@ -27,13 +31,9 @@ TODO
 
 ## Outlook
 
-The goal is to transform this project into metamorphic malware in order to better comprehend this challenging topic.
-
-Some tasks to be completed include:
-
 * Encrypted ping payloads
-* Propagating into executables
-* Refactor code and free variables from memory
+* Refactor code and ensure memory is being freed
+* Reducing trail of evidence by embedding virus and executable in one file rather than creating a hidden file for the executable that is called after virus execution
 
 ## License
 
