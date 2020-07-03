@@ -6,7 +6,7 @@ A metamorphic virus written in C.
 
 ## Description
 
-The malware is first activated by running the compiled bytecode. It copies the */etc/passwd* and */etc/shadow* files from the user's system and sends them to an external IP address. This is achieved by embedding these sensitive file contents in the payloads of ICMP pings. Next, the malware scans the current directory and overwrites all executable files that have not been previously infected with its morphed code. Because each propagation uses a unique version of the morphed code, it makes it difficult for antivirus software to detect it. Afterwards, the original executable is run from a hidden file it was copied to during the propagation phase to disguise the fact that the actual executable was infected.
+The malware is first activated by running the compiled bytecode. It copies the */etc/passwd* and */etc/shadow* files from the user's system and sends them to an external IP address. This is achieved by embedding these sensitive file contents in the payloads of ICMP pings. The contents of these pings can then be intercepted using a packet analyzer such as Wireshark and then fed into a password cracker such as John the Ripper. In the next stage, the malware scans the current directory and overwrites all executable files that have not been previously infected with its morphed code. Because each propagation uses a unique version of the morphed code, it makes it difficult for antivirus software to detect it. Afterwards, the original executable is run from a hidden file it was copied to during the propagation phase to disguise the fact that the actual executable was infected.
 
 ## Usage
 
@@ -31,8 +31,9 @@ make clean
 
 ## Outlook
 
-* Encrypted ping payloads
 * Refactor code and ensure memory is being freed
+* Ensure file contents are small enough for ICMP ping payloads
+* Encrypted ping payloads
 * Reducing trail of evidence by embedding virus and executable in one file rather than creating a hidden file for the executable that is called after virus execution
 
 ## License
