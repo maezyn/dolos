@@ -31,8 +31,9 @@ make clean
 
 ## Outlook
 
-* Encrypted ping payloads
 * Refactor code and ensure memory is being freed
+* Add more metamorphic components
+* Encrypted ping payloads
 * Reducing trail of evidence by embedding virus and executable in one file rather than creating a hidden file for the executable that is called after virus execution
 
 ## Disclaimer

