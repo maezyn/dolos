@@ -36,6 +36,10 @@ make clean
 * Encrypted ping payloads
 * Reducing trail of evidence by embedding virus and executable in one file rather than creating a hidden file for the executable that is called after virus execution
 
+## Disclaimer
+
+This project is intended solely for educational purposes to better understand various malware techniques. It is not to be distributed, modified, or used for any malicious intent. As stated in the license below, I take no responsibility for any malicious use of this malware.
+
 ## License
 
 wildfire is available under the [MIT License](https://github.com/mmore21/wildfire/blob/master/LICENSE).
