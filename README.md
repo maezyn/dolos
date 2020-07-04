@@ -31,9 +31,8 @@ make clean
 
 ## Outlook
 
-* Refactor code and ensure memory is being freed
-* Ensure file contents are small enough for ICMP ping payloads
 * Encrypted ping payloads
+* Refactor code and ensure memory is being freed
 * Reducing trail of evidence by embedding virus and executable in one file rather than creating a hidden file for the executable that is called after virus execution
 
 ## Disclaimer

