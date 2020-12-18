@@ -52,6 +52,7 @@ nc 127.0.0.1 -lp 1234
 * Add more metamorphic components
 * Encrypted ping payloads
 * Reducing trail of evidence by embedding virus and executable in one file rather than creating a hidden file for the executable that is called after virus execution
+* Improved file I/O
 
 ## Disclaimer
 
