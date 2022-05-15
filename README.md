@@ -1,69 +1,110 @@
-# wildfire
+# dolos
 
-![GitHub](https://img.shields.io/github/license/mmore21/wildfire)
-
-A metamorphic virus written in C.
+Metamorphic engine written in Rust.
 
 ## Description
 
-The malware is first activated by running the compiled bytecode. It copies the */etc/passwd* and */etc/shadow* files from the user's system and sends them to an external IP address. This is achieved by embedding these sensitive file contents in the payloads of ICMP pings. The contents of these pings can then be intercepted using a packet analyzer such as Wireshark and then fed into a password cracker such as John the Ripper. In the next stage, the malware scans the current directory and overwrites all executable files that have not been previously infected with its morphed code. Because each propagation uses a unique version of the morphed code, it makes it difficult for antivirus software to detect it. Afterwards, the original executable is run from a hidden file it was copied to during the propagation phase to disguise the fact that the actual executable was infected. Finally, a Perl reverse shell is opened to give the attacker access to the system with the cracked passwords.
+dolos is a [metamorphic engine](https://en.wikipedia.org/wiki/Metamorphic_code) written in Rust. It features obfuscation techniques including garbage code insertion and register usage exchange. It features inline x86 assembly using Rust's [asm!](https://doc.rust-lang.org/nightly/reference/inline-assembly.html) macro. Its implementation was inspired by this Stack Overflow [post](https://stackoverflow.com/questions/10113254/metamorphic-code-examples).
 
-## Design
+### Garbage Code Insertion
 
-![Malware Flowchart](https://github.com/mmore21/wildfire/blob/master/img/flow_malware.png)
+dolos inserts instances of the inline assembly below into its initial compiled binary. The NOP instructions are replaced with random junk instructions when the binary is executed. Subsequent executions replace this section of code with more garbage code. The structure of the payload allows the instances to be detected within the binary file even after the NOP instructions have been overwritten. The engine also performs checks before replacing the assembly to ensure that the metamorphosis will not corrupt the binary.
+
+```rust
+unsafe{
+    asm!(
+        ".code32",
+        "push eax",
+        "nop",
+        "nop",
+        "nop",
+        "nop",
+        "nop",
+        "nop",
+        "nop",
+        "nop",
+        "pop eax",
+    );
+}
+```
+
+### Register Usage Exchange
+
+Register usage exchange replaces registers without changing the overall overall action of the code. dolos checks to ensure that the program will not be corrupted before exchanging the registers. The stack register (SP) is excluded because of this.
+
+A simple example of a register change can be seen below.
+
+```nasm
+; Original
+push eax
+...
+pop eax
+
+; Updated
+push ebx
+...
+pop ebx
+```
+
+PUSH and POP instructions were used by the metamorphic engine to perform register usage exchanges. The following [Intel x86 Assembler Instruction Set Opcode Table](http://sparksandflames.com/files/x86InstructionChart.html) shows that the PUSH and POP instructions are correlated as the respective registers for each have an constant offset of 8. For example, PUSH eax = 50 and POP eax = 58.
+
+![Intel x86 Assembler Instruction Set Opcode Table](img/opcode_table.png)
+
+These registers can be exchanged by the metamorphic engine by keeping track of the register offset as seen in the table below.
+
+| EAX | ECX | EDX | EBX | ESP | EBP | ESI | EDI |
+|-----|-----|-----|-----|-----|-----|-----|-----|
+|  0  |  1  |  2  |  3  |  4  |  5  |  6  |  7  |
 
 ## Usage
 
-**Caution, running the executable will propagate the virus into all other files in the current directory that have executable permissions. This can cause permanent damage to your system if misused.**
+**Caution, dolos destructively overwrites the file provided as the argument.**
 
-Run the program using the following Makefile or by compiling from source with gcc.
+Ensure you have Rust and Cargo installed. Clone the repository and build the binary.
 
-### Unix:
+```sh
+$ git clone https://github.com/mmore21/dolos.git
+$ cd dolos/
+$ cargo build
+$ cd target/debug/
+```
 
-Run with the following Makefile:
-<pre>
-git clone https://github.com/mmore21/wildfire.git
-cd wildfire/
-make
-sudo ./wildfire
-make clean
-</pre>
+Examine the initial compiled binary.
 
-Afterwards, go to a protocol analyzer such as Wireshark and filter by ICMP traffic. The default IP address that is pinged is 127.0.0.1 (loopback address). Copy the payload as printable ASCII text for each respective ping and save them into two files that represent the */etc/passwd* and */etc/shadow* files. Please note, you will have to remove the spaces from the *$* along with any extraneous payload data.
+```sh
+$ md5sum dolos
+0b44a144376f0c49398ab56a9b99f405  dolos
 
-![Wireshark Screenshot](https://github.com/mmore21/wildfire/blob/master/img/screen_wireshark.png)
+$ xxd dolos | less
+...
+0000c4a0: 660f b6c0 f6f1 66c1 e808 8844 2407 5090  f.....f....D$.P.
+0000c4b0: 9090 9090 9090 9058 807c 2407 040f 93c0  .......X.|$.....
+...
+```
 
-Finally, use a password cracker such as John The Ripper to attempt to crack the unshadowed combination of these files. Please fill in *PASSWD_FILENAME* and *SHADOW_FILENAME* with the respective names of the files created in the protocol analyzer step. Please note, these passwords may take a long time to crack.
+Run dolos and provide itself as the file to metamorphically change.
 
-<pre>
-sudo unshadow PASSWD_FILENAME SHADOW_FILENAME > mypasswd
-sudo john mypasswd
-</pre>
+```sh
+$ ./dolos dolos
+```
 
-After the malware sends the ICMP pings, it then propagates, runs the original executable, and finally attempts to fire a Perl reverse shell. In order to successfully establish a connection, the attacker must listen on a specific port. By default, the IP address is set to 127.0.0.1 (loopback address) and the port is set to 1234. Please note, netcat must be listening on the specific port prior to running the malware.
+Examining the binary again shows that it has been metamorphically changed. As seen in the hex dump, both garbage code insertion and register usage exchange occured.
 
-<pre>
-nc 127.0.0.1 -lp 1234
-</pre>
+```sh
+$ md5sum dolos
+9171078f1100986c25eb1c70f291d886  dolos
 
-## Outlook
-
-* Refactor code and ensure memory is being freed
-* Add more metamorphic components
-* Encrypted ping payloads
-* Reducing trail of evidence by embedding virus and executable in one file rather than creating a hidden file for the executable that is called after virus execution
-* Improved file I/O
+$ xxd dolos | less
+...
+0000c4a0: 660f b6c0 f6f1 66c1 e808 8844 2407 5321  f.....f....D$.S!
+0000c4b0: c3bb 0090 7490 905b 807c 2407 040f 93c0  ....t..[.|$.....
+...
+```
 
 ## Disclaimer
 
-This project is intended solely for educational purposes to better understand various malware techniques. It is not to be distributed, modified, or used for any malicious intent. As stated in the license below, I take no responsibility for any malicious use of this malware.
+This project is intended solely for educational purposes to better understand various metamorphic techniques. It is not to be distributed, modified, or used for any malicious intent. As stated in the license below, I take no responsibility for any malicious use of this metamorphic engine.
 
 ## License
 
-wildfire is available under the [MIT License](https://github.com/mmore21/wildfire/blob/master/LICENSE).
-
-## References
-
-* [Wikipedia Metamorphic Code](https://en.wikipedia.org/wiki/Metamorphic_code)
-* [Stack Overflow Metamorphic Code Examples](https://stackoverflow.com/questions/10113254/metamorphic-code-examples)
-* [Secret messages in a ping: creation and prevention](http://www.wseas.us/e-library/conferences/2012/SaintMalo/SITE/SITE-03.pdf)
+dolos is available under the [GNU General Public License v3.0](https://choosealicense.com/licenses/gpl-3.0/).
